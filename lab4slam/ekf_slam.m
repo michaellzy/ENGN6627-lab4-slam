@@ -67,7 +67,9 @@ function F = jac_f(x0,u)
     % Given the state x0 and input signal u, compute the Jacobian of f.
     n = length(x0);
     F = eye(n);
-    F(1: 3, 1: 3) = f(x0, u);
+    F(1,3) = -sin(x0(3)) * x0(1);
+    F(2,3) = cos(x0(3)) * x0(1);
+    
 end
 
 function y = h(x, idx)
