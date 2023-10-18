@@ -42,11 +42,23 @@ classdef ekf_slam < handle
             % Add a new (not seen before) landmark to the state vector and
             % covariance matrix. You will need to associate the landmark's
             % id number with its index in the state vector.
+
+            % Loop through all the landmark numbers provided in 'nums'
             for i = 1:length(nums)
+                
+                % Check if the current landmark number is not already in the idx2num mapping
                 if ~ismember(nums(i), obj.idx2num)
+                    
+                    % Get the current length of the state vector
                     n = length(obj.x);
+                    
+                    % Append the new landmark's state to the state vector
                     obj.x = [obj.x; y(2*i-1:2*i)];
+                    
+                    % Expand the covariance matrix by adding the covariance for the new landmark
                     obj.P = blkdiag(obj.P, obj.siglm^2 * eye(2));
+                    
+                    % Update the idx2num mapping with the new landmark's number
                     obj.idx2num = [obj.idx2num; nums(i)];
                 end
             end
