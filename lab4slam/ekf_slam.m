@@ -11,6 +11,7 @@ classdef ekf_slam < handle
         siglm = 0.01; % The covariance of landmark measurements
         
         idx2num = []; % The map from state vector index to landmark id.
+        % to store the order of the landmark index seen by the robot
     end
     
     methods
@@ -119,9 +120,13 @@ function [H, idx2num] = jac_h(x, idx, idx2num)
         y(2*i-1,1) = -cos(theta);
         y(2*i-1,2) = -sin(theta);
         y(2*i-1,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
+        y(2*i-1,3+2*i-1) = cos(theta);
+        y(2*i-1,3+2*i) = sin(theta);
         y(2*i,1) = sin(theta);
         y(2*i,2) = -cos(theta);
-        y(2*i,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
+        y(2*i,3) = cos(theta) * (x_k - x(ix)) + sin(theta) * (y_k - x(iy));
+        y(2*i,3+2*i-1) = -sin(theta);
+        y(2*i,3+2*i) = cos(theta);
     end
 
 
