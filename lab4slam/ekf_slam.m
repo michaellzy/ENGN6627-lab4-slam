@@ -20,8 +20,11 @@ classdef ekf_slam < handle
             % the state and covariance estimates using the input velocity,
             % the time step, and the covariance of the update step.
             % The eta means the total noise which implemented on the APA^T
-            eta = [obj.sigxy*dt 0 0, 0 obj.sigxy*dt 0, 0 0 obj.sigth*dt];
-
+            u = [lin_velocity; ang_velocity];
+            obj.x(1:3) = f(obj.x(1:3), u);
+            F = jac_f(obj.x(1:3), u, dt);
+            Q = diag([obj.sigxy^2*dt, obj.sigxy^2*dt, obj.sigth^2*dt]);
+            obj.P(1:3,1:3) = F * obj.P(1:3,1:3) * F' + Q;
         end
         
         function input_measurements(obj, measurements, nums)
@@ -56,7 +59,7 @@ classdef ekf_slam < handle
     end
 end
 
- % Jacobians and System Functions
+% Jacobians and System Functions
 
  function x1 = f(x0,u)
     % integrate the input u from the state x0 to obtain x1.
