@@ -58,7 +58,7 @@ end
 
  % Jacobians and System Functions
 
-function x1 = f(x0,u)
+ function x1 = f(x0,u)
     % integrate the input u from the state x0 to obtain x1.
     % The state equation with D(3+2N), p22
     % Q1: where is the input x0 and u
@@ -78,25 +78,30 @@ function F = jac_f(x0, u, dt)
 end
 
 
-function y = h(x, idx)
+function [y, idx2num] = h(x, idx, idx2num)
     % Given the state x and a list of indices idx, compute the state
     % measurement y.
     % x is the current state which contains the vehicle and landmarks
     % state in tantem
+    for i = idx
+        if ~ismember(i, idx2num)
+            idx2num(end+1) = i;
+        end
+    end
     m = length(idx); % get number of landmarks
     y = zeros(2 * m); % dimension of y: 2 * m
     x_k = x(1);
     y_k = x(2);
     theta = x(3);
     for i = 1 : m
-        ix = 3 + (2 * (i - 1)) + 1; % get the x coordinate's index of i's landmark in the state
-        iy = 3 + (2 * (i - 1)) + 2; % get the y coordinate's index       
+        landmark_idx = find(idx2num == idx(i)); % Find the order of appearance of the landmark in idx2num
+        ix = 3 + 2*(landmark_idx - 1) + 1; % get the x coordinate's index of i's landmark in the state
+        iy = ix + 1; % get the y coordinate's index      
         x_ix = -cos(theta) * (x_k - x(ix)) - sin(theta) * (y_k - x(iy));
         y_iy = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
         y(2*i-1) = x_ix;
         y(2*i) = y_iy;
     end
-
 end
 
 function [H, idx2num] = jac_h(x, idx, idx2num)
@@ -115,8 +120,9 @@ function [H, idx2num] = jac_h(x, idx, idx2num)
     y_k = x(2);
     theta = x(3);
     for i = 1 : m
-        ix = 3 + 2*i - 1; % get the x coordinate's index of i's landmark in the state
-        iy = 3 + 2*i; % get the y coordinate's index       
+        landmark_idx = find(idx2num == idx(i)); % Find the order of appearance of the landmark in idx2num
+        ix = 3 + 2*(landmark_idx - 1) + 1; % get the x coordinate's index of i's landmark in the state
+        iy = ix + 1; % get the y coordinate's index
         H(2*i-1,1) = -cos(theta);
         H(2*i-1,2) = -sin(theta);
         H(2*i-1,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
