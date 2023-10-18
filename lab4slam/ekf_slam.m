@@ -42,27 +42,34 @@ classdef ekf_slam < handle
             % Add a new (not seen before) landmark to the state vector and
             % covariance matrix. You will need to associate the landmark's
             % id number with its index in the state vector.
-
-            % Loop through all the landmark numbers provided in 'nums'
+        
+            % Extract robot pose from the state
+            x_k = obj.x(1);
+            y_k = obj.x(2);
+            theta = obj.x(3);
+        
+            % Iterate over the new measurements
             for i = 1:length(nums)
-                
-                % Check if the current landmark number is not already in the idx2num mapping
                 if ~ismember(nums(i), obj.idx2num)
+                    % Compute the initial estimate of the landmark's position
+                    l_x = x_k + cos(theta) * y(2*i-1) - sin(theta) * y(2*i);
+                    l_y = y_k + sin(theta) * y(2*i-1) + cos(theta) * y(2*i);
                     
-                    % Get the current length of the state vector
+                    % Augment the state vector with the new landmark position
+                    obj.x = [obj.x; l_x; l_y];
+                    
+                    % Augment the covariance matrix
                     n = length(obj.x);
+                    P_new = LARGE * eye(n); % LARGE is a large value for initial uncertainty
+                    P_new(1:n-2, 1:n-2) = obj.P; % Copy the old covariance values
+                    obj.P = P_new;
                     
-                    % Append the new landmark's state to the state vector
-                    obj.x = [obj.x; y(2*i-1:2*i)];
-                    
-                    % Expand the covariance matrix by adding the covariance for the new landmark
-                    obj.P = blkdiag(obj.P, obj.siglm^2 * eye(2));
-                    
-                    % Update the idx2num mapping with the new landmark's number
+                    % Update the idx2num mapping
                     obj.idx2num = [obj.idx2num; nums(i)];
                 end
             end
         end
+
         
         function [robot, cov] = output_robot(obj)
             % Suggested: output the part of the state vector and covariance
@@ -101,7 +108,7 @@ function F = jac_f(x0, u, dt)
 end
 
 
-function [y, idx2num] = h(x, idx, idx2num)
+function y = h(x, idx, idx2num)
     % Given the state x and a list of indices idx, compute the state
     % measurement y.
     % x is the current state which contains the vehicle and landmarks
@@ -127,7 +134,7 @@ function [y, idx2num] = h(x, idx, idx2num)
     end
 end
 
-function [H, idx2num] = jac_h(x, idx, idx2num)
+function H = jac_h(x, idx, idx2num)
     % Given the state x and a list of indices idx, compute the Jacobian of
     % the measurement function h.
     % need to check whether we should use this ~ismember method or not
