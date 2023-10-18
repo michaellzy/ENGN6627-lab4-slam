@@ -109,25 +109,23 @@ function [H, idx2num] = jac_h(x, idx, idx2num)
         end
     end
     m = length(idx); % get current observing number of landmarks
-    N = length(idx2num); % get total number of landmarks
-    y = zeros(2*m * (3 + 2*N)); % dimension of y: 2m * (3+2N)
+    N = length(idx2num); % get total number of landmarks we have already seen
+    H = zeros(2*m, (3 + 2*N)); % dimension of y: 2m * (3+2N)
     x_k = x(1);
     y_k = x(2);
     theta = x(3);
     for i = 1 : m
-        ix = 3 + (2 * (i - 1)) + 1; % get the x coordinate's index of i's landmark in the state
-        iy = 3 + (2 * (i - 1)) + 2; % get the y coordinate's index       
-        y(2*i-1,1) = -cos(theta);
-        y(2*i-1,2) = -sin(theta);
-        y(2*i-1,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
-        y(2*i-1,3+2*i-1) = cos(theta);
-        y(2*i-1,3+2*i) = sin(theta);
-        y(2*i,1) = sin(theta);
-        y(2*i,2) = -cos(theta);
-        y(2*i,3) = cos(theta) * (x_k - x(ix)) + sin(theta) * (y_k - x(iy));
-        y(2*i,3+2*i-1) = -sin(theta);
-        y(2*i,3+2*i) = cos(theta);
+        ix = 3 + 2*i - 1; % get the x coordinate's index of i's landmark in the state
+        iy = 3 + 2*i; % get the y coordinate's index       
+        H(2*i-1,1) = -cos(theta);
+        H(2*i-1,2) = -sin(theta);
+        H(2*i-1,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
+        H(2*i-1,3+2*i-1) = cos(theta);
+        H(2*i-1,3+2*i) = sin(theta);
+        H(2*i,1) = sin(theta);
+        H(2*i,2) = -cos(theta);
+        H(2*i,3) = cos(theta) * (x_k - x(ix)) + sin(theta) * (y_k - x(iy));
+        H(2*i,3+2*i-1) = -sin(theta);
+        H(2*i,3+2*i) = cos(theta);
     end
-
-
 end
