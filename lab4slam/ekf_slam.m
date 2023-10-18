@@ -20,6 +20,7 @@ classdef ekf_slam < handle
             % the state and covariance estimates using the input velocity,
             % the time step, and the covariance of the update step.
             % The eta means the total noise which implemented on the APA^T
+            % covariance and variance
             u = [lin_velocity; ang_velocity];
             obj.x(1:3) = f(obj.x(1:3), u);
             F = jac_f(obj.x(1:3), u, dt);
@@ -41,7 +42,14 @@ classdef ekf_slam < handle
             % Add a new (not seen before) landmark to the state vector and
             % covariance matrix. You will need to associate the landmark's
             % id number with its index in the state vector.
-            
+            for i = 1:length(nums)
+                if ~ismember(nums(i), obj.idx2num)
+                    n = length(obj.x);
+                    obj.x = [obj.x; y(2*i-1:2*i)];
+                    obj.P = blkdiag(obj.P, obj.siglm^2 * eye(2));
+                    obj.idx2num = [obj.idx2num; nums(i)];
+                end
+            end
         end
         
         function [robot, cov] = output_robot(obj)
