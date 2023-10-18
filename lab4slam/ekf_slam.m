@@ -31,17 +31,51 @@ classdef ekf_slam < handle
         function input_measurements(obj, measurements, nums)
             % Perform the update step of the EKF. This involves adding
             % new (not previously seen) landmarks to the state vector and
-            % implementing the EKF innovation equations. You will need the
-            % landmark measurements and you will need to be careful about
-            % matching up landmark ids with their indices in the state
-            % vector and covariance matrix.
-            
+            % implementing the EKF innovation equations.
+        
+            % Extract robot pose from the state
+            x_k = obj.x(1);
+            y_k = obj.x(2);
+            theta = obj.x(3);
+        
+            % Iterate over the measurements
+            for i = 1:length(nums)
+                landmark_idx = find(obj.idx2num == nums(i));
+                
+                % If the landmark is new
+                if isempty(landmark_idx)
+                    add_new_landmarks(obj, measurements(2*i-1:2*i), nums(i));
+                    landmark_idx = find(obj.idx2num == nums(i)); % Update the landmark index
+                end
+                
+                % Compute expected measurement
+                ix = 3 + 2*(landmark_idx - 1) + 1;
+                iy = ix + 1;
+                expected_measurement = [-cos(theta) * (x_k - obj.x(ix)) - sin(theta) * (y_k - obj.x(iy));
+                                         sin(theta) * (x_k - obj.x(ix)) - cos(theta) * (y_k - obj.x(iy))];
+                
+                % Compute the innovation
+                innovation = measurements(2*i-1:2*i) - expected_measurement;
+                
+                % Compute the Jacobian H using the jac_h function
+                [H, ~] = jac_h(obj.x, nums(i), obj.idx2num);
+                
+                % EKF update equations
+                S = H * obj.P * H' + obj.siglm * eye(2); % Measurement covariance
+                K = obj.P * H' / S; % Kalman gain
+                obj.x = obj.x + K * innovation; % Update state
+                obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
+            end
         end
+
         
         function add_new_landmarks(obj, y, nums)
             % Add a new (not seen before) landmark to the state vector and
             % covariance matrix. You will need to associate the landmark's
             % id number with its index in the state vector.
+            % Q1: do we need to add a noise into the y value, which is the
+            % output of the measurement step
+            % Q2: How to augment the covariance matrix?
         
             % Extract robot pose from the state
             x_k = obj.x(1);
