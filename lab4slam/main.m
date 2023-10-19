@@ -3,15 +3,16 @@ clear all; close all; clc;
 
 pb = PiBot('192.168.50.1'); % Use this command instead if using PiBot.
 
-addpath("engnx627_2020/lab4slam/arucoDetector/include/");
-addpath("engnx627_2020/lab4slam/arucoDetector/");
+addpath("../arucoDetector/include/");
+addpath("../arucoDetector/");
 load("arucoDict.mat");
 load("cameraParams.mat");
 
 %% Create a window to visualise the robot camera
 figure;
 camAxes = axes();
-slam = ekf_slam()
+slam = ekf_slam();
+marker_length = 0.7;
 %% Follow the line in a loop
 while true
     t1 = tic;
@@ -46,7 +47,6 @@ while true
             break;
         end
     end
-
     
 
     % Find the centre of mass of the line pixels
@@ -75,13 +75,14 @@ while true
     pb.setVelocity(wl, wr);
     end_t1 = toc(t1);
     slam.input_velocity(end_t1,u,q);
-    slam.input_measurements(landmark_centres,marker_nums);
+    % slam.measure_landmarks
+    slam.input_measurements(reshape(landmark_centres(:, 1:2)', [], 1),marker_nums);
     % display(wl)
     % display(wr)
-    [robot,robot_cv] = slam.output_robot()
+    [robot,robot_cv] = slam.output_robot();
     disp(robot)
     disp(robot_cv)
-    [landmarks, cov] = slam.output_landmarks()
+    [landmarks, cov] = slam.output_landmarks();
     disp(landmarks)
     disp(cov)
     % Update the figure window

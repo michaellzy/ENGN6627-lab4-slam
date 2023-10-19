@@ -45,20 +45,23 @@ classdef ekf_slam < handle
             theta = obj.x(3);
 
             % add new landmark
-            y = h(obj.x, nums, obj.idx2num);
-            add_new_landmarks(obj, y, nums);
+            % y1 = h(obj.x, nums, obj.idx2num);
+            % add_new_landmarks(obj, y1, nums);
+            add_new_landmarks(obj, measurements, nums); % in slide 35
+            y1 = h(obj.x, nums, obj.idx2num);
 
             % Compute the innovation
-            innovation = measurements - y;
-            
+            innovation = measurements - y1;
+
             % Compute the Jacobian H using the jac_h function
-            H = jac_h(obj.x, nums, obj.idx2num); % 2*(3+2N)
-            
+            H = jac_h(obj.x, nums, obj.idx2num); % 2m*(3+2N)
+
             % EKF update equations
-            S = H * obj.P * H' + obj.siglm * eye(2); % Measurement covariance
+            S = H * obj.P * H' + obj.siglm * eye(2*length(nums)); % Measurement covariance
             K = obj.P * H' / S; % Kalman gain
             obj.x = obj.x + K * innovation; % Update state
             obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
+
             % for i = 1:length(nums)
             %     landmark_idx = find(obj.idx2num == nums(i));
             % 
@@ -74,7 +77,6 @@ classdef ekf_slam < handle
             %     iy = ix + 1;
             %     expected_measurement = [-cos(theta) * (x_k - obj.x(ix)) - sin(theta) * (y_k - obj.x(iy));
             %                              sin(theta) * (x_k - obj.x(ix)) - cos(theta) * (y_k - obj.x(iy))];
-            %     expected_measurement = h(x, nums[], idx2num);
             % 
             %     % Compute the innovation
             %     innovation = measurements(2*i-1:2*i) - expected_measurement;
@@ -98,6 +100,7 @@ classdef ekf_slam < handle
             % Add a new (not seen before) landmark to the state vector and
             % covariance matrix. You will need to associate the landmark's
             % id number with its index in the state vector.
+            % Q0: The new added state x is a global value
             % Q1: do we need to add a noise into the y value, which is the
             % output of the measurement step
             % Q2: How to augment the covariance matrix?
@@ -120,7 +123,7 @@ classdef ekf_slam < handle
                     
                     % Augment the covariance matrix (followed the slide 38)
                     n = length(obj.x);
-                    P_new = LARGE * eye(n); % LARGE is a large value for initial uncertainty
+                    P_new = 100 * eye(n); % LARGE is a large value for initial uncertainty
                     P_new(1:n-2, 1:n-2) = obj.P; % Copy the old covariance values
                     obj.P = P_new;
                     
@@ -195,13 +198,16 @@ function y = h(x, idx, idx2num)
     % measurement y.
     % x is the current state which contains the vehicle and landmarks
     % state in tantem
+    % return a dimension of 2m
     for i = idx
         if ~ismember(i, idx2num)
-            idx2num(end+1) = i;
+            disp(i);
+            disp(idx2num);
+            idx2num = [idx2num, i];
         end
     end
-    m = length(idx); % get number of landmarks
-    y = zeros(2 * m); % dimension of y: 2 * m
+    m = length(idx); % get number of current landmarks
+    y = zeros(2 * m, 1); % dimension of y: 2 * m, 1
     x_k = x(1);
     y_k = x(2);
     theta = x(3);
@@ -222,7 +228,9 @@ function H = jac_h(x, idx, idx2num)
     % need to check whether we should use this ~ismember method or not
     for i = idx
         if ~ismember(i, idx2num)
-            idx2num(end+1) = i;
+            disp(i);
+            disp(idx2num);
+            idx2num = [idx2num, i];
         end
     end
     m = length(idx); % get current observing number of landmarks
