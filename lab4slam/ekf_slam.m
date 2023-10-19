@@ -19,12 +19,10 @@ classdef ekf_slam < handle
             % Perform the prediction step of the EKF. This involves updating
             % the state and covariance estimates using the input velocity,
             % the time step, and the covariance of the update step.
-            % The eta means the total noise which implemented on the APA^T
-            % covariance and variance
             u = [lin_velocity; ang_velocity];
             obj.x(1:3) = f(obj.x(1:3), u);
             F = jac_f(obj.x(1:3), u, dt);
-            Q = diag([obj.sigxy^2*dt, obj.sigxy^2*dt, obj.sigth^2*dt]);
+            Q = diag([obj.sigxy*dt, obj.sigxy*dt, obj.sigth*dt]);
             obj.P(1:3,1:3) = F * obj.P(1:3,1:3) * F' + Q;
         end
         
@@ -37,8 +35,8 @@ classdef ekf_slam < handle
             % Q2. How about change the whole structure with a more concise
             % way? Because we have already implemented the new landmark
             % check in the add_new_landmarks(obj, y, nums) function.
-            % However, the current sturcture can solve the compute the 
-            % innovation problem. So we should understand what is the
+            % However, the current sturcture can solve the computation of 
+            % the innovation problem. So we should understand what is the
             % meaning of this step first.
         
             % Extract robot pose from the state
