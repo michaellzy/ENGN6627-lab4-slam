@@ -106,7 +106,7 @@ classdef ekf_slam < handle
                     % Augment the state vector with the new landmark position
                     obj.x = [obj.x; l_x; l_y];
                     
-                    % Augment the covariance matrix
+                    % Augment the covariance matrix (followed the slide 38)
                     n = length(obj.x);
                     P_new = LARGE * eye(n); % LARGE is a large value for initial uncertainty
                     P_new(1:n-2, 1:n-2) = obj.P; % Copy the old covariance values
@@ -120,9 +120,13 @@ classdef ekf_slam < handle
 
         
         function [robot, cov] = output_robot(obj)
-            % Suggested: output the part of the state vector and covariance
-            % matrix corresponding only to the robot.
-
+            % Output the part of the state vector and covariance matrix corresponding only to the robot.
+        
+            % Robot's state is the first 3 elements of the state vector
+            robot = obj.x(1:3);
+        
+            % Corresponding covariance is the top-left 3x3 block of the covariance matrix
+            cov = obj.P(1:3, 1:3);
         end
         
         function [landmarks, cov] = output_landmarks(obj)
