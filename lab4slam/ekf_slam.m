@@ -19,11 +19,21 @@ classdef ekf_slam < handle
             % Perform the prediction step of the EKF. This involves updating
             % the state and covariance estimates using the input velocity,
             % the time step, and the covariance of the update step.
+            % u = [lin_velocity; ang_velocity];
+            % obj.x(1:3) = f(obj.x(1:3), u);
+            % F = jac_f(obj.x(1:3), u, dt);
+            % Q = diag([obj.sigxy*dt, obj.sigxy*dt, obj.sigth*dt]);
+            % obj.P(1:3,1:3) = F * obj.P(1:3,1:3) * F' + Q;
+            n = length(obj.x);          % 3+2N
             u = [lin_velocity; ang_velocity];
-            obj.x(1:3) = f(obj.x(1:3), u);
-            F = jac_f(obj.x(1:3), u, dt);
-            Q = diag([obj.sigxy*dt, obj.sigxy*dt, obj.sigth*dt]);
-            obj.P(1:3,1:3) = F * obj.P(1:3,1:3) * F' + Q;
+            obj.x = f(obj.x, u);        % 3+2N
+            F = jac_f(obj.x, u, dt);    % 3+2N, 3+2N
+            Q = zeros(n, n);
+            Q(1, 1) = obj.sigxy*dt;
+            Q(2, 2) = obj.sigxy*dt;
+            Q(3, 3) = obj.sigth*dt;
+            obj.P = F * obj.P * F' + Q;
+            disp(obj.P)
         end
         
         function input_measurements(obj, measurements, nums)
@@ -119,16 +129,31 @@ classdef ekf_slam < handle
                     
                     % Augment the state vector with the new landmark position
                     new_landmark = [l_x; l_y];
-                    obj.x = vertcat(obj.x, new_landmark);
+                    % disp(size(obj.x));
+                    % disp(size(new_landmark));
+                    % obj.x = vertcat(obj.x, new_landmark);
+                    obj.x = [obj.x; new_landmark];
                     
                     % Augment the covariance matrix (followed the slide 38)
-                    n = length(obj.x);
-                    P_new = 100 * eye(n); % LARGE is a large value for initial uncertainty
-                    P_new(1:n-2, 1:n-2) = obj.P; % Copy the old covariance values
-                    obj.P = P_new;
+                    % n = length(obj.x);
+                    % P_new = 100 * eye(n); % input a large value for initial uncertainty
+                    % P_new(1:n-2, 1:n-2) = obj.P; % Copy the old covariance values
+                    % obj.P = P_new;
+
+                    n = size(obj.P);
+                    n = n(1); % current size of P
+                    new_rows = zeros(2, n);
+                    obj.P = [obj.P; new_rows];
+                    new_vector = zeros(n+2, 2);
+                    obj.P = [obj.P new_vector];
+                    n = size(obj.P);
+                    n = n(1); % current size of P
+                    large = 10;    % append uncertiny
+                    obj.P(n-1,n-1) = large;
+                    obj.P(n,n) = large;
+
                     
                     % Update the idx2num mapping
-
                     % obj.idx2num = [obj.idx2num; nums(i)];
                     obj.idx2num = vertcat(obj.idx2num, nums(i));
                 end
@@ -176,18 +201,21 @@ end
 
 function x1 = f(x0,u)
     % integrate the input u from the state x0 to obtain x1.
-    % The state equation with D(3+2N), p22
-    % Q1: where is the input x0 and u
-    % x0 is the default value, u is from the inverse kinemics
+    % The state equation with D(3+2N, 1), p22
+    % Here we should change the previous code, since:
+    % 1. what if the first detection is empty? then the x4 is invalid
+    % 2. the last line will change the column vector into row vector
+    x1 = x0;
     x1(1) = x0(1) + cos(x0(3)) * u(1);
     x1(2) = x0(2) + sin(x0(3)) * u(1);
     x1(3) = x0(3) + u(2);
-    x1(4:end) = x0(4:end);
+    % x1(4:end) = x0(4:end);
 end
 
 
 function F = jac_f(x0, u, dt)
 % The noise of BQB.T is exactly the dt times the variance Q
+% dimension 3+2N, 3+2N
     n = length(x0);
     F = eye(n);
     F(1,3) = -sin(x0(3)) * u(1) * dt;
