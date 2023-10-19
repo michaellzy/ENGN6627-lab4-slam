@@ -141,6 +141,7 @@ classdef ekf_slam < handle
         
             % Robot's state is the first 3 elements of the state vector
             robot = obj.x(1:3);
+            % disp(obj.idx2num);
         
             % Corresponding covariance is the top-left 3x3 block of the covariance matrix
             cov = obj.P(1:3, 1:3);

@@ -134,7 +134,7 @@ classdef PiBot < handle
             
             if length(varargin{1}) == 1
                 % then (SA, SB) classic format
-                vel(1) = varargin{1}; vel(2) = varargin{2};
+                vel(1) = varargin{1}; vel(2) = -varargin{2}; % overwrite right wheel velocity to reverse sign
                 
                 assert(all(isreal(vel)), 'arguments must be real');
                 vel = round(vel);  % convert to int
@@ -147,6 +147,7 @@ classdef PiBot < handle
                 % then (SPEED), (SPEED, T) or (SPEED, T, A)
                 
                 vel = varargin{1};
+                vel(2) = -vel(2);
                 assert(all(isreal(vel)), 'arguments must be real');
                 vel = round(vel);  % convert to int
                 vel = min(max(vel, -100), 100);  % clip
