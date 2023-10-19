@@ -32,6 +32,14 @@ classdef ekf_slam < handle
             % Perform the update step of the EKF. This involves adding
             % new (not previously seen) landmarks to the state vector and
             % implementing the EKF innovation equations.
+            % Q1. we should check the dimension, especially the dimension
+            % of the P matrix
+            % Q2. How about change the whole structure with a more concise
+            % way? Because we have already implemented the new landmark
+            % check in the add_new_landmarks(obj, y, nums) function.
+            % However, the current sturcture can solve the compute the 
+            % innovation problem. So we should understand what is the
+            % meaning of this step first.
         
             % Extract robot pose from the state
             x_k = obj.x(1);
@@ -39,11 +47,14 @@ classdef ekf_slam < handle
             theta = obj.x(3);
         
             % Iterate over the measurements
+            % This structure has an implicit issue since only one index
+            % will be passed as input parameter
             for i = 1:length(nums)
                 landmark_idx = find(obj.idx2num == nums(i));
                 
                 % If the landmark is new
                 if isempty(landmark_idx)
+                    % update the state x and P matrix
                     add_new_landmarks(obj, measurements(2*i-1:2*i), nums(i));
                     landmark_idx = find(obj.idx2num == nums(i)); % Update the landmark index
                 end
@@ -58,7 +69,10 @@ classdef ekf_slam < handle
                 innovation = measurements(2*i-1:2*i) - expected_measurement;
                 
                 % Compute the Jacobian H using the jac_h function
-                [H, ~] = jac_h(obj.x, nums(i), obj.idx2num);
+                % There is a tinny problem since only one num(i) will be 
+                % counted, but the input nums(i) was an array in the 
+                % implemented jac_h function
+                H = jac_h(obj.x, nums(i), obj.idx2num); % 2*(3+2N)
                 
                 % EKF update equations
                 S = H * obj.P * H' + obj.siglm * eye(2); % Measurement covariance
