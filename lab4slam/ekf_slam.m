@@ -141,7 +141,7 @@ classdef ekf_slam < handle
         
             % Robot's state is the first 3 elements of the state vector
             robot = obj.x(1:3);
-            % disp(obj.idx2num);
+            disp(obj.idx2num);
         
             % Corresponding covariance is the top-left 3x3 block of the covariance matrix
             cov = obj.P(1:3, 1:3);
@@ -184,6 +184,7 @@ function x1 = f(x0,u)
     x1(3) = x0(3) + u(2);
     x1(4:end) = x0(4:end);
 end
+
 
 function F = jac_f(x0, u, dt)
 % The noise of BQB.T is exactly the dt times the variance Q

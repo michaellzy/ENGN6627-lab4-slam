@@ -25,7 +25,14 @@ while true
     % First, get the current camera frame
     img = pb.getImage();
     [marker_nums, landmark_centres, marker_corners] = detectArucoPoses(img, marker_length, cameraParams, arucoDict);
-    disp(marker_nums);
+    % disp(marker_nums);
+
+    % Create a logical index for values in vec that are less than
+    % or equal to 22
+    idx = marker_nums <= 22;   
+    % Filter nums and measurements using the logical index
+    marker_nums = marker_nums(idx);
+    landmark_centres = landmark_centres(idx, :);
 
     % To crop the last 100 rows
     end_row = size(img, 1);
