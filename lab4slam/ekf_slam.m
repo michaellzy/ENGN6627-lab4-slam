@@ -52,9 +52,6 @@ classdef ekf_slam < handle
             innovation = measurements - y;
             
             % Compute the Jacobian H using the jac_h function
-            % There is a tinny problem since only one num(i) will be 
-            % counted, but the input nums(i) was an array in the 
-            % implemented jac_h function
             H = jac_h(obj.x, nums, obj.idx2num); % 2*(3+2N)
             
             % EKF update equations
