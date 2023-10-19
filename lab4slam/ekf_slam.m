@@ -130,9 +130,25 @@ classdef ekf_slam < handle
         end
         
         function [landmarks, cov] = output_landmarks(obj)
-            % Suggested: output the part of the state vector and covariance
-            % matrix corresponding only to the landmarks.
-
+            % Output the part of the state vector and covariance matrix 
+            % corresponding only to the landmarks.
+        
+            % Number of landmarks
+            N = (length(obj.x) - 3) / 2;
+        
+            % Initialize landmarks matrix
+            landmarks = zeros(2, N);
+            for i = 1:N
+                landmarks(:, i) = obj.x(3 + 2*(i-1) + 1 : 3 + 2*i);
+            end
+        
+            % Extract corresponding covariance blocks for each landmark
+            cov = cell(1, N);
+            for i = 1:N
+                start_idx = 3 + 2*(i-1) + 1;
+                end_idx = 3 + 2*i;
+                cov{i} = obj.P(start_idx:end_idx, start_idx:end_idx);
+            end
         end
         
     end
@@ -140,7 +156,7 @@ end
 
 % Jacobians and System Functions
 
- function x1 = f(x0,u)
+function x1 = f(x0,u)
     % integrate the input u from the state x0 to obtain x1.
     % The state equation with D(3+2N), p22
     % Q1: where is the input x0 and u
