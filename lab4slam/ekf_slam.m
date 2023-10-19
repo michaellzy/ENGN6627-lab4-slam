@@ -43,44 +43,60 @@ classdef ekf_slam < handle
             x_k = obj.x(1);
             y_k = obj.x(2);
             theta = obj.x(3);
-        
-            % Iterate over the measurements
-            % This structure has an implicit issue since only one index
-            % will be passed as input parameter
-            for i = 1:length(nums)
-                landmark_idx = find(obj.idx2num == nums(i));
-                
-                % If the landmark is new
-                if isempty(landmark_idx)
-                    % update the state x and P matrix
-                    add_new_landmarks(obj, measurements(2*i-1:2*i), nums(i));
-                    landmark_idx = find(obj.idx2num == nums(i)); % Update the landmark index
-                end
-                
-                % Compute expected measurement
-                ix = 3 + 2*(landmark_idx - 1) + 1;
-                iy = ix + 1;
-                expected_measurement = [-cos(theta) * (x_k - obj.x(ix)) - sin(theta) * (y_k - obj.x(iy));
-                                         sin(theta) * (x_k - obj.x(ix)) - cos(theta) * (y_k - obj.x(iy))];
-                
-                % Compute the innovation
-                innovation = measurements(2*i-1:2*i) - expected_measurement;
-                
-                % Compute the Jacobian H using the jac_h function
-                % There is a tinny problem since only one num(i) will be 
-                % counted, but the input nums(i) was an array in the 
-                % implemented jac_h function
-                H = jac_h(obj.x, nums(i), obj.idx2num); % 2*(3+2N)
-                
-                % EKF update equations
-                S = H * obj.P * H' + obj.siglm * eye(2); % Measurement covariance
-                K = obj.P * H' / S; % Kalman gain
-                obj.x = obj.x + K * innovation; % Update state
-                obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
-            end
+
+            % add new landmark
+            y = h(obj.x, nums, obj.idx2num);
+            add_new_landmarks(obj, y, nums);
+
+            % Compute the innovation
+            innovation = measurements - y;
+            
+            % Compute the Jacobian H using the jac_h function
+            % There is a tinny problem since only one num(i) will be 
+            % counted, but the input nums(i) was an array in the 
+            % implemented jac_h function
+            H = jac_h(obj.x, nums, obj.idx2num); % 2*(3+2N)
+            
+            % EKF update equations
+            S = H * obj.P * H' + obj.siglm * eye(2); % Measurement covariance
+            K = obj.P * H' / S; % Kalman gain
+            obj.x = obj.x + K * innovation; % Update state
+            obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
+            % for i = 1:length(nums)
+            %     landmark_idx = find(obj.idx2num == nums(i));
+            % 
+            %     % If the landmark is new
+            %     if isempty(landmark_idx)
+            %         % update the state x and P matrix
+            %         add_new_landmarks(obj, measurements(2*i-1:2*i), nums(i));
+            %         landmark_idx = find(obj.idx2num == nums(i)); % Update the landmark index
+            %     end
+            % 
+            %     % Compute expected measurement
+            %     ix = 3 + 2*(landmark_idx - 1) + 1;
+            %     iy = ix + 1;
+            %     expected_measurement = [-cos(theta) * (x_k - obj.x(ix)) - sin(theta) * (y_k - obj.x(iy));
+            %                              sin(theta) * (x_k - obj.x(ix)) - cos(theta) * (y_k - obj.x(iy))];
+            %     expected_measurement = h(x, nums[], idx2num);
+            % 
+            %     % Compute the innovation
+            %     innovation = measurements(2*i-1:2*i) - expected_measurement;
+            % 
+            %     % Compute the Jacobian H using the jac_h function
+            %     % There is a tinny problem since only one num(i) will be 
+            %     % counted, but the input nums(i) was an array in the 
+            %     % implemented jac_h function
+            %     H = jac_h(obj.x, nums(i), obj.idx2num); % 2*(3+2N)
+            % 
+            %     % EKF update equations
+            %     S = H * obj.P * H' + obj.siglm * eye(2); % Measurement covariance
+            %     K = obj.P * H' / S; % Kalman gain
+            %     obj.x = obj.x + K * innovation; % Update state
+            %     obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
+            % end
         end
 
-        
+
         function add_new_landmarks(obj, y, nums)
             % Add a new (not seen before) landmark to the state vector and
             % covariance matrix. You will need to associate the landmark's
@@ -102,7 +118,8 @@ classdef ekf_slam < handle
                     l_y = y_k + sin(theta) * y(2*i-1) + cos(theta) * y(2*i);
                     
                     % Augment the state vector with the new landmark position
-                    obj.x = [obj.x; l_x; l_y];
+                    new_landmark = [l_x; l_y];
+                    obj.x = vertcat(obj.x, new_landmark);
                     
                     % Augment the covariance matrix (followed the slide 38)
                     n = length(obj.x);
@@ -111,7 +128,9 @@ classdef ekf_slam < handle
                     obj.P = P_new;
                     
                     % Update the idx2num mapping
-                    obj.idx2num = [obj.idx2num; nums(i)];
+
+                    % obj.idx2num = [obj.idx2num; nums(i)];
+                    obj.idx2num = vertcat(obj.idx2num, nums(i));
                 end
             end
         end
