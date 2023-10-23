@@ -7,8 +7,8 @@ classdef ekf_slam < handle
         
 		% The covariance values provided here are NOT correct!
         sigxy = 0.1; % The covariance of linear velocity
-        sigth = 0.01; % The covariance of angular velocity
-        siglm = 0.01; % The covariance of landmark measurements
+        sigth = 0.1; % The covariance of angular velocity
+        siglm = 0.1; % The covariance of landmark measurements
         
         idx2num = []; % The map from state vector index to landmark id.
         % to store the order of the landmark index seen by the robot
@@ -33,7 +33,7 @@ classdef ekf_slam < handle
             Q(2, 2) = obj.sigxy*dt;
             Q(3, 3) = obj.sigth*dt;
             obj.P = F * obj.P * F' + Q;
-            disp(obj.P)
+            % disp(obj.P)
         end
         
         function input_measurements(obj, measurements, nums)
@@ -57,19 +57,44 @@ classdef ekf_slam < handle
             % add new landmark
             % y1 = h(obj.x, nums, obj.idx2num);
             % add_new_landmarks(obj, y1, nums);
+            % BFF to Global
             add_new_landmarks(obj, measurements, nums); % in slide 35
-            y1  = h(obj.x, nums, obj.idx2num);
+            
+            % Global to BFF
+            y1 = h(obj.x, nums, obj.idx2num);   % 
+            % fprintf('y1 = \n');
+            % disp(y1)
 
-            % Compute the innovation
-            innovation = measurements - y1;
+            % Compute the difference
+            difference = measurements - y1;
+
+            % fprintf('input landmarks = \n');
+            % disp(nums)            
+            % fprintf('difference = \n');
+            % disp(difference)
+            % fprintf('size of difference = \n');
+            % disp(size(difference))
 
             % Compute the Jacobian H using the jac_h function
             H = jac_h(obj.x, nums, obj.idx2num); % 2m*(3+2N)
 
+            % fprintf('H = \n'); % check whether the K value is updated
+            % disp(H);
+
             % EKF update equations
             S = H * obj.P * H' + obj.siglm * eye(2*length(nums)); % Measurement covariance
             K = obj.P * H' / S; % Kalman gain
-            obj.x = obj.x + K * innovation; % Update state
+
+            % fprintf('size of S = \n'); % check whether the K value is updated
+            % disp(size(S));
+            % fprintf('K = \n'); % check whether the K value is updated
+            % disp(K);
+            
+            obj.x = obj.x + K * difference; % Update state
+
+            % fprintf('K*H = \n'); % check whether the K*H value is updated
+            % disp(K*H);
+
             obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
 
             % for i = 1:length(nums)
@@ -114,7 +139,10 @@ classdef ekf_slam < handle
             % Q1: do we need to add a noise into the y value, which is the
             % output of the measurement step
             % Q2: How to augment the covariance matrix?
-        
+            
+            fprintf('idx2num = \n'); % check whether the K*H value is updated
+            disp(obj.idx2num);
+
             % Extract robot pose from the state
             x_k = obj.x(1);
             y_k = obj.x(2);
@@ -166,7 +194,6 @@ classdef ekf_slam < handle
         
             % Robot's state is the first 3 elements of the state vector
             robot = obj.x(1:3);
-            disp(obj.idx2num);
         
             % Corresponding covariance is the top-left 3x3 block of the covariance matrix
             cov = obj.P(1:3, 1:3);
@@ -229,13 +256,13 @@ function y = h(x, idx, idx2num)
     % x is the current state which contains the vehicle and landmarks
     % state in tantem
     % return a dimension of 2m
-    for i = idx
-        if ~ismember(i, idx2num)
-            disp(i);
-            disp(idx2num);
-            idx2num = [idx2num, i];
-        end
-    end
+    % for i = idx
+    %     if ~ismember(i, idx2num)
+    %         % disp(i);
+    %         % disp(idx2num);
+    %         idx2num = [idx2num, i];
+    %     end
+    % end
     m = length(idx); % get number of current landmarks
     y = zeros(2 * m, 1); % dimension of y: 2 * m, 1
     x_k = x(1);
@@ -256,13 +283,14 @@ function H = jac_h(x, idx, idx2num)
     % Given the state x and a list of indices idx, compute the Jacobian of
     % the measurement function h.
     % need to check whether we should use this ~ismember method or not
-    for i = idx
-        if ~ismember(i, idx2num)
-            disp(i);
-            disp(idx2num);
-            idx2num = [idx2num, i];
-        end
-    end
+    % for i = idx
+    %     if ~ismember(i, idx2num)
+    %         fprintf('i and idx2num = \n');
+    %         disp(i);
+    %         disp(idx2num);
+    %         idx2num = [idx2num, i];
+    %     end
+    % end
     m = length(idx); % get current observing number of landmarks
     N = length(idx2num); % get total number of landmarks we have already seen
     H = zeros(2*m, (3 + 2*N)); % dimension of y: 2m * (3+2N)
@@ -273,15 +301,15 @@ function H = jac_h(x, idx, idx2num)
         landmark_idx = find(idx2num == idx(i)); % Find the order of appearance of the landmark in idx2num
         ix = 3 + 2*(landmark_idx - 1) + 1; % get the x coordinate's index of i's landmark in the state
         iy = ix + 1; % get the y coordinate's index
-        H(2*i-1,1) = -cos(theta);
-        H(2*i-1,2) = -sin(theta);
-        H(2*i-1,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
-        H(2*i-1,3+2*i-1) = cos(theta);
-        H(2*i-1,3+2*i) = sin(theta);
+        H(2*i,1) = -cos(theta);
+        H(2*i,2) = -sin(theta);
+        H(2*i,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
+        H(2*i-1,3+2*landmark_idx-1) = cos(theta);
+        H(2*i-1,3+2*landmark_idx) = sin(theta);
         H(2*i,1) = sin(theta);
         H(2*i,2) = -cos(theta);
         H(2*i,3) = cos(theta) * (x_k - x(ix)) + sin(theta) * (y_k - x(iy));
-        H(2*i,3+2*i-1) = -sin(theta);
-        H(2*i,3+2*i) = cos(theta);
+        H(2*i,3+2*landmark_idx-1) = -sin(theta);
+        H(2*i,3+2*landmark_idx) = cos(theta);
     end
 end

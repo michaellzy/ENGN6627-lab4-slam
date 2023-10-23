@@ -17,6 +17,11 @@ camAxes = axes();
 % Time step
 dt = 0.1;  % in seconds
 marker_length = 0.07;
+total_time = 0;
+%% Set parameters for draw the trajectory
+state = [0; 0; 0]; % [x, y, theta]
+% trajectory = state;
+trajectory = [];
 
 all_idx2num = {};
 all_landmarks = {};
@@ -53,15 +58,23 @@ while true
     black_pixels = sum(~bin_img, 'all');
     percentage_black = (black_pixels / total_pixels) * 100;
 
-    disp(['Percentage of black pixels: ', num2str(percentage_black), '%']);
+    % disp(['Percentage of black pixels: ', num2str(percentage_black), '%']);
 
     % Check if the percentage of black pixels exceeds a threshold
     if percentage_black > 99.5
         display("End of line")
         end_of_line = true;
+        % if reach the end, turn around
         if (end_of_line)
-            pb.stop
-            break;
+            time = 4;
+            u = 0.0;
+            q = 2*pi/(4*time);
+            [wl, wr] = inverse_kinematics(u, q);
+            pb.setVelocity([wl, wr], time);
+            state = integrate_kinematics(state, time, u, q);
+            continue
+            % pb.stop
+            % break;
         end
     end
     
@@ -74,13 +87,10 @@ while true
     % Normalize the line centre to lie between [-1, 1]
     line_centre = (line_centre - size(img)/2) / (size(img)/2);
     
-    % Use the line centre to compute a velocity command
-    u = 0.1; % Linear velocity
-    q = -0.5 * line_centre; % Angular velocity based on line centre
+    % % Use the line centre to compute a velocity command
+    % u = 0.1; % Linear velocity
+    % q = -0.5 * line_centre; % Angular velocity based on line centre
 
-    % I prefer the above lines of code, since it just keep going and use
-    % other algorithm to control whether it will stop or not
-    % Check the condition when the point is invisible (as the line shrinks)
     % if abs(line_centre) > 0.5
     %     u = 0.0;
     % else
@@ -89,17 +99,23 @@ while true
     % q = -0.5*line_centre; % replace with computed values
 
     
-    % if abs(line_centre) > 0.5
-    %     u = 0.1;
-    %     q = -0.5*line_centre;
-    % else
-    %     u = 0.15;
-    %     q = - 0.3*line_centre; % replace with computed values
-    % end
+    if abs(line_centre) > 0.5
+        u = 0.1;
+        q = -0.5*line_centre;
+    else
+        u = 0.15;
+        q = - 0.3*line_centre; % replace with computed values
+    end
 
     
     % Compute the required wheel velocities
     [wl, wr] = inverse_kinematics(u, q);
+
+
+    new_state = integrate_kinematics(state, dt, u, q);
+    new_state = reshape(new_state, [3, 1]);
+    state = new_state; % update
+    trajectory = [trajectory, new_state]; % Store the new state
 
 
     % Constrain the min wheel velocity
@@ -116,6 +132,13 @@ while true
     toc;
     dt = toc;
     end_t1 = dt;
+
+    % check if the total time is equal to 4 mins
+    total_time = total_time + dt;
+    if total_time >= 240
+        pb.stop
+        break
+    end
 
     % end_t1 = toc(t1);
     slam.input_velocity(end_t1,u,q);
@@ -142,3 +165,7 @@ save('collected_data.mat', 'all_idx2num', 'all_landmarks');
 % Save the trajectory of the robot to a file.
 % Plot the integrated trajectory
 figure;
+plot(trajectory(1, :), trajectory(2, :));
+title('Integrated Trajectory');
+xlabel('X');
+ylabel('Y');
