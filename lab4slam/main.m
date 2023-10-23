@@ -18,6 +18,9 @@ camAxes = axes();
 dt = 0.1;  % in seconds
 marker_length = 0.07;
 
+all_idx2num = {};
+all_landmarks = {};
+counter = 1;
 %% Follow the line in a loop
 while true
     % t1 = tic;
@@ -123,12 +126,18 @@ while true
     [robot,robot_cv] = slam.output_robot();
     % disp(robot)
     % disp(robot_cv)
-    [landmarks, cov] = slam.output_landmarks();
+    [landmark_id, landmarks, cov] = slam.output_landmarks();
+    % Store the obtained data
+    all_idx2num{counter} = landmark_id;
+    all_landmarks{counter} = landmarks;
+    counter = counter + 1;
     % disp(landmarks)
     % disp(cov)
     % Update the figure window
     drawnow;
 end
+
+save('collected_data.mat', 'all_idx2num', 'all_landmarks');
 
 % Save the trajectory of the robot to a file.
 % Plot the integrated trajectory

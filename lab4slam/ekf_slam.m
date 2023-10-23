@@ -58,7 +58,7 @@ classdef ekf_slam < handle
             % y1 = h(obj.x, nums, obj.idx2num);
             % add_new_landmarks(obj, y1, nums);
             add_new_landmarks(obj, measurements, nums); % in slide 35
-            y1 = h(obj.x, nums, obj.idx2num);
+            y1  = h(obj.x, nums, obj.idx2num);
 
             % Compute the innovation
             innovation = measurements - y1;
@@ -172,10 +172,10 @@ classdef ekf_slam < handle
             cov = obj.P(1:3, 1:3);
         end
         
-        function [landmarks, cov] = output_landmarks(obj)
+        function [landmark_id, landmarks, cov] = output_landmarks(obj)
             % Output the part of the state vector and covariance matrix 
             % corresponding only to the landmarks.
-        
+            landmark_id = obj.idx2num;
             % Number of landmarks
             N = (length(obj.x) - 3) / 2;
         
