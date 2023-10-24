@@ -6,9 +6,9 @@ classdef ekf_slam < handle
         P = zeros(3,3); % The estimated state covariance
         
 		% The covariance values provided here are NOT correct!
-        sigxy = 0.1; % The covariance of linear velocity
-        sigth = 0.1; % The covariance of angular velocity
-        siglm = 0.1; % The covariance of landmark measurements
+        sigxy = 0.5; % The covariance of linear velocity
+        sigth = 0.5; % The covariance of angular velocity
+        siglm = 0.5; % The covariance of landmark measurements
         
         idx2num = []; % The map from state vector index to landmark id.
         % to store the order of the landmark index seen by the robot
@@ -176,7 +176,7 @@ classdef ekf_slam < handle
                     obj.P = [obj.P new_vector];
                     n = size(obj.P);
                     n = n(1); % current size of P
-                    large = 10;    % append uncertiny
+                    large = 100;    % append uncertiny
                     obj.P(n-1,n-1) = large;
                     obj.P(n,n) = large;
 
@@ -199,7 +199,7 @@ classdef ekf_slam < handle
             cov = obj.P(1:3, 1:3);
         end
         
-        function [landmark_id, landmarks, cov] = output_landmarks(obj)
+        function [landmarks, cov] = output_landmarks(obj)
             % Output the part of the state vector and covariance matrix 
             % corresponding only to the landmarks.
             landmark_id = obj.idx2num;

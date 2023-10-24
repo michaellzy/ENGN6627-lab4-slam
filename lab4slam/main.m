@@ -23,9 +23,6 @@ state = [0; 0; 0]; % [x, y, theta]
 % trajectory = state;
 trajectory = [];
 
-all_idx2num = {};
-all_landmarks = {};
-counter = 1;
 %% Follow the line in a loop
 while true
     % t1 = tic;
@@ -68,7 +65,7 @@ while true
         if (end_of_line)
             time = 4;
             u = 0.0;
-            q = 2*pi/(4*time);
+            q = -2*pi/(4*time);
             [wl, wr] = inverse_kinematics(u, q);
             pb.setVelocity([wl, wr], time);
             state = integrate_kinematics(state, time, u, q);
@@ -88,8 +85,8 @@ while true
     line_centre = (line_centre - size(img)/2) / (size(img)/2);
     
     % % Use the line centre to compute a velocity command
-    % u = 0.1; % Linear velocity
-    % q = -0.5 * line_centre; % Angular velocity based on line centre
+    u = 0.14; % Linear velocity
+    q = -0.5 * line_centre; % Angular velocity based on line centre
 
     % if abs(line_centre) > 0.5
     %     u = 0.0;
@@ -98,16 +95,6 @@ while true
     % end
     % q = -0.5*line_centre; % replace with computed values
 
-    
-    if abs(line_centre) > 0.5
-        u = 0.1;
-        q = -0.5*line_centre;
-    else
-        u = 0.15;
-        q = - 0.3*line_centre; % replace with computed values
-    end
-
-    
     % Compute the required wheel velocities
     [wl, wr] = inverse_kinematics(u, q);
 
@@ -135,7 +122,7 @@ while true
 
     % check if the total time is equal to 4 mins
     total_time = total_time + dt;
-    if total_time >= 240
+    if total_time >= 120
         pb.stop
         break
     end
@@ -149,17 +136,17 @@ while true
     [robot,robot_cv] = slam.output_robot();
     % disp(robot)
     % disp(robot_cv)
-    [landmark_id, landmarks, cov] = slam.output_landmarks();
+    % [landmarks, cov] = slam.output_landmarks();
     % Store the obtained data
-    all_idx2num{counter} = landmark_id;
-    all_landmarks{counter} = landmarks;
-    counter = counter + 1;
+    
     % disp(landmarks)
     % disp(cov)
     % Update the figure window
     drawnow;
 end
-
+[landmarks, cov] = slam.output_landmarks();
+all_idx2num = slam.idx2num;
+all_landmarks = landmarks;
 save('collected_data.mat', 'all_idx2num', 'all_landmarks');
 
 % Save the trajectory of the robot to a file.
