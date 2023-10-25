@@ -23,6 +23,10 @@ state = [0; 0; 0]; % [x, y, theta]
 % trajectory = state;
 trajectory = [];
 
+figure;
+trajectoryAxes = subplot(1, 2, 1); % Axes for the trajectory plot
+hold(trajectoryAxes, 'on'); % Keep the trajectory and ellipse on the same plot
+
 %% Follow the line in a loop
 while true
     % t1 = tic;
@@ -46,7 +50,7 @@ while true
 
     % Convert to grayscale and binarize
     gray_img = rgb2gray(img);
-    bin_img = ~imbinarize(gray_img, 0.3);
+    bin_img = ~imbinarize(gray_img, 0.25);
 
     imshow(bin_img, "Parent", camAxes); % Check the video
 
@@ -65,7 +69,7 @@ while true
         if (end_of_line)
             time = 4;
             u = 0.0;
-            q = -2*pi/(4*time);
+            q = 2*pi/(4*time);
             [wl, wr] = inverse_kinematics(u, q);
             pb.setVelocity([wl, wr], time);
             state = integrate_kinematics(state, time, u, q);
@@ -84,8 +88,8 @@ while true
     % Normalize the line centre to lie between [-1, 1]
     line_centre = (line_centre - size(img)/2) / (size(img)/2);
     
-    % % Use the line centre to compute a velocity command
-    u = 0.14; % Linear velocity
+    % Use the line centre to compute a velocity command
+    u = 0.1; % Linear velocity
     q = -0.5 * line_centre; % Angular velocity based on line centre
 
     % if abs(line_centre) > 0.5
@@ -95,6 +99,16 @@ while true
     % end
     % q = -0.5*line_centre; % replace with computed values
 
+    % 
+    % if abs(line_centre) > 0.45
+    %     u = 0.10;
+    %     q = -0.45*line_centre;
+    % else
+    %     u = 0.15;
+    %     q = - 0.2*line_centre; % replace with computed values
+    % end
+
+    
     % Compute the required wheel velocities
     [wl, wr] = inverse_kinematics(u, q);
 
@@ -122,7 +136,7 @@ while true
 
     % check if the total time is equal to 4 mins
     total_time = total_time + dt;
-    if total_time >= 120
+    if total_time >= 240
         pb.stop
         break
     end
@@ -131,28 +145,44 @@ while true
     slam.input_velocity(end_t1,u,q);
     % slam.measure_landmarks
     slam.input_measurements(reshape(landmark_centres(:, 1:2)', [], 1), marker_nums);
-    % display(wl)
-    % display(wr)
     [robot,robot_cv] = slam.output_robot();
-    % disp(robot)
-    % disp(robot_cv)
-    % [landmarks, cov] = slam.output_landmarks();
-    % Store the obtained data
+    % disp(robot(1));
+    % disp(robot(2));
+
+    % Draw robot's current position on the trajectoryAxes
+    plot(trajectoryAxes, robot(1), robot(2), 'r.'); % Red dot for position
     
+     % Draw the covariance ellipse around the robot's position
+    % drawCovEllipse(trajectoryAxes, robot(1:2), cov(1:2, 1:2)); % Custom function for drawing the ellipse
+    % plotErrorEllipse(trajectoryAxes, robot(1:2), robot_cv(1:2, 1:2), 0.9);
+    % [landmarks, cov] = slam.output_landmarks();
     % disp(landmarks)
     % disp(cov)
     % Update the figure window
     drawnow;
 end
+
+figure;
 [landmarks, cov] = slam.output_landmarks();
 all_idx2num = slam.idx2num;
 all_landmarks = landmarks;
 save('collected_data.mat', 'all_idx2num', 'all_landmarks');
-
-% Save the trajectory of the robot to a file.
-% Plot the integrated trajectory
-figure;
 plot(trajectory(1, :), trajectory(2, :));
 title('Integrated Trajectory');
 xlabel('X');
 ylabel('Y');
+
+function plotErrorEllipse(ax, mu, Sigma, p)
+
+    s = -2 * log(1 - p);
+
+    [V, D] = eig(Sigma * s);
+
+    t = linspace(0, 2 * pi);
+    a = (V * sqrt(D)) * [cos(t(:))'; sin(t(:))'];
+
+    plot(ax, a(1, :) + mu(1), a(2, :) + mu(2));
+end    
+
+% Save the trajectory of the robot to a file.
+% Plot the integrated trajectory

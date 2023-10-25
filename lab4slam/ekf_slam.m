@@ -6,9 +6,9 @@ classdef ekf_slam < handle
         P = zeros(3,3); % The estimated state covariance
         
 		% The covariance values provided here are NOT correct!
-        sigxy = 0.5; % The covariance of linear velocity
-        sigth = 0.5; % The covariance of angular velocity
-        siglm = 0.5; % The covariance of landmark measurements
+        sigxy = 0.1; % The covariance of linear velocity
+        sigth = 0.1; % The covariance of angular velocity
+        siglm = 0.1; % The covariance of landmark measurements
         
         idx2num = []; % The map from state vector index to landmark id.
         % to store the order of the landmark index seen by the robot
@@ -26,7 +26,7 @@ classdef ekf_slam < handle
             % obj.P(1:3,1:3) = F * obj.P(1:3,1:3) * F' + Q;
             n = length(obj.x);          % 3+2N
             u = [lin_velocity; ang_velocity];
-            obj.x = f(obj.x, u);        % 3+2N
+            obj.x = f(obj.x, u, dt);        % 3+2N
             F = jac_f(obj.x, u, dt);    % 3+2N, 3+2N
             Q = zeros(n, n);
             Q(1, 1) = obj.sigxy*dt;
@@ -194,6 +194,7 @@ classdef ekf_slam < handle
         
             % Robot's state is the first 3 elements of the state vector
             robot = obj.x(1:3);
+            disp(robot);
         
             % Corresponding covariance is the top-left 3x3 block of the covariance matrix
             cov = obj.P(1:3, 1:3);
@@ -226,16 +227,16 @@ end
 
 % Jacobians and System Functions
 
-function x1 = f(x0,u)
+function x1 = f(x0,u, dt)
     % integrate the input u from the state x0 to obtain x1.
     % The state equation with D(3+2N, 1), p22
     % Here we should change the previous code, since:
     % 1. what if the first detection is empty? then the x4 is invalid
     % 2. the last line will change the column vector into row vector
     x1 = x0;
-    x1(1) = x0(1) + cos(x0(3)) * u(1);
-    x1(2) = x0(2) + sin(x0(3)) * u(1);
-    x1(3) = x0(3) + u(2);
+    x1(1) = x0(1) + cos(x0(3)) * u(1) * dt;
+    x1(2) = x0(2) + sin(x0(3)) * u(1) * dt;
+    x1(3) = x0(3) + u(2) * dt;
     % x1(4:end) = x0(4:end);
 end
 
