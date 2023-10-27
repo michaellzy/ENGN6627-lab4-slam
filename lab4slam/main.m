@@ -73,6 +73,8 @@ while true
             [wl, wr] = inverse_kinematics(u, q);
             pb.setVelocity([wl, wr], time);
             state = integrate_kinematics(state, time, u, q);
+            slam.input_velocity(time,u,q);
+            slam.input_measurements(reshape(landmark_centres(:, 1:2)', [], 1), marker_nums);
             continue
             % pb.stop
             % break;
@@ -102,10 +104,10 @@ while true
     % 
     % if abs(line_centre) > 0.45
     %     u = 0.10;
-    %     q = -0.45*line_centre;
+    %     q = -0.5*line_centre;
     % else
     %     u = 0.15;
-    %     q = - 0.2*line_centre; % replace with computed values
+    %     q = - 0.5*line_centre; % replace with computed values
     % end
 
     
@@ -136,15 +138,16 @@ while true
 
     % check if the total time is equal to 4 mins
     total_time = total_time + dt;
-    if total_time >= 240
+    if total_time >= 180
         pb.stop
         break
     end
 
     % end_t1 = toc(t1);
     slam.input_velocity(end_t1,u,q);
-    % slam.measure_landmarks
+    % slam.measure_landmark
     slam.input_measurements(reshape(landmark_centres(:, 1:2)', [], 1), marker_nums);
+    % slam.input_measurements(reshape(landmark_centres(:, 1:2)', [], 1), marker_nums);
     [robot,robot_cv] = slam.output_robot();
     % disp(robot(1));
     % disp(robot(2));
@@ -153,8 +156,7 @@ while true
     plot(trajectoryAxes, robot(1), robot(2), 'r.'); % Red dot for position
     
      % Draw the covariance ellipse around the robot's position
-    % drawCovEllipse(trajectoryAxes, robot(1:2), cov(1:2, 1:2)); % Custom function for drawing the ellipse
-    % plotErrorEllipse(trajectoryAxes, robot(1:2), robot_cv(1:2, 1:2), 0.9);
+    % plotErrorEllipse(trajectoryAxes, robot(1:2), robot_cv(1:2, 1:2), 0.7);
     % [landmarks, cov] = slam.output_landmarks();
     % disp(landmarks)
     % disp(cov)
@@ -166,6 +168,30 @@ figure;
 [landmarks, cov] = slam.output_landmarks();
 all_idx2num = slam.idx2num;
 all_landmarks = landmarks;
+landmark_x_coord = all_landmarks(1, :);
+landmark_y_coord = all_landmarks(2, :);
+plot(trajectoryAxes, landmark_x_coord, landmark_y_coord, 'bo', 'MarkerSize', 5, 'LineWidth', 2);
+N = length(landmarks);
+for i = 1 : N
+    plotErrorEllipse(trajectoryAxes, all_landmarks(:, i)', 0.05*cov{i}, 0.9);
+end
+
+data_gt = load("gt_lab.mat");
+landmarks_gt = data_gt.all_landmarks;
+
+x_coord_gt = landmarks_gt(1, :);
+y_coord_gt = landmarks_gt(2, :);
+
+plot(trajectoryAxes, x_coord_gt, y_coord_gt,'gx', 'MarkerSize', 5, 'LineWidth', 2);
+legend(trajectoryAxes, 'Estimation (blue Circle)', 'Ground Truth (Green Cross)');
+
+% Add labels and title for clarity
+xlabel(trajectoryAxes,'X Coordinate');
+ylabel(trajectoryAxes, 'Y Coordinate');
+title(trajectoryAxes, 'Comparison of Estimation and Ground Truth Landmarks');
+
+% Add grid for better visibility
+grid on;
 save('collected_data.mat', 'all_idx2num', 'all_landmarks');
 plot(trajectory(1, :), trajectory(2, :));
 title('Integrated Trajectory');

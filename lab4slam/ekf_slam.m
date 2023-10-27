@@ -8,7 +8,7 @@ classdef ekf_slam < handle
 		% The covariance values provided here are NOT correct!
         sigxy = 0.1; % The covariance of linear velocity
         sigth = 0.1; % The covariance of angular velocity
-        siglm = 0.1; % The covariance of landmark measurements
+        siglm = 0.6; % The covariance of landmark measurements
         
         idx2num = []; % The map from state vector index to landmark id.
         % to store the order of the landmark index seen by the robot
@@ -94,9 +94,10 @@ classdef ekf_slam < handle
 
             % fprintf('K*H = \n'); % check whether the K*H value is updated
             % disp(K*H);
-
+            fprintf('P = \n');
             obj.P = (eye(size(obj.P)) - K * H) * obj.P; % Update covariance
-
+            
+            % disp(obj.P);
             % for i = 1:length(nums)
             %     landmark_idx = find(obj.idx2num == nums(i));
             % 
@@ -252,18 +253,6 @@ end
 
 
 function y = h(x, idx, idx2num)
-    % Given the state x and a list of indices idx, compute the state
-    % measurement y.
-    % x is the current state which contains the vehicle and landmarks
-    % state in tantem
-    % return a dimension of 2m
-    % for i = idx
-    %     if ~ismember(i, idx2num)
-    %         % disp(i);
-    %         % disp(idx2num);
-    %         idx2num = [idx2num, i];
-    %     end
-    % end
     m = length(idx); % get number of current landmarks
     y = zeros(2 * m, 1); % dimension of y: 2 * m, 1
     x_k = x(1);
@@ -302,9 +291,9 @@ function H = jac_h(x, idx, idx2num)
         landmark_idx = find(idx2num == idx(i)); % Find the order of appearance of the landmark in idx2num
         ix = 3 + 2*(landmark_idx - 1) + 1; % get the x coordinate's index of i's landmark in the state
         iy = ix + 1; % get the y coordinate's index
-        H(2*i,1) = -cos(theta);
-        H(2*i,2) = -sin(theta);
-        H(2*i,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
+        H(2*i-1,1) = -cos(theta);
+        H(2*i-1,2) = -sin(theta);
+        H(2*i-1,3) = sin(theta) * (x_k - x(ix)) - cos(theta) * (y_k - x(iy));
         H(2*i-1,3+2*landmark_idx-1) = cos(theta);
         H(2*i-1,3+2*landmark_idx) = sin(theta);
         H(2*i,1) = sin(theta);

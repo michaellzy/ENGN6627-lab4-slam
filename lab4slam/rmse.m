@@ -1,10 +1,11 @@
 % Load the .mat file
 data_pred = load('collected_data.mat');
-data_gt = load('gt.mat');
+data_gt = load('gt_lab.mat');
 
 % Extract all_idx2num
 pred_idx = data_pred.all_idx2num';
-gt_idx = data_gt.id;
+% gt_idx = data_gt.id;
+gt_idx = data_gt.numeric_ids;
 gt_landmarks_pos = cell(1, length(pred_idx));
 N = length(pred_idx);
 
@@ -15,7 +16,8 @@ for i = 1:N
         gt_landmarks = data_gt.all_landmarks(:, landmark_idx);
         gt_landmarks_pos{i} = gt_landmarks;
     else
-        gt_landmarks_pos{i} = NaN(size(data_gt.all_landmarks, 1), 1); % Use NaN for unmatched landmarks
+        % gt_landmarks_pos{i} = NaN(size(data_gt.all_landmarks, 1), 1); % Use NaN for unmatched landmarks
+       gt_landmarks_pos{i} = [0; 0];
     end
 end
 
